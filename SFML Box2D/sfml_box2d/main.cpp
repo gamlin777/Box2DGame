@@ -4,15 +4,64 @@
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <sstream>
+#include <ctime>
+#include <cstdlib>
+
+
+b2World* m_world;
+
+b2Vec2 myRand (int strength) {
+	// Create 2 random floats and treat them as a vector
+	float rX = rand() % 200;
+	rX *= 0.01f;
+	--rX;
+
+	float rY = rand() % 200;
+	rY *= 0.01f;
+	--rY;
+
+	b2Vec2 v(rX,rY);
+	v.Normalize();
+	v *= strength;
+
+	return v;
+}
+
+void newBall()
+{
+	b2Vec2 nBallPos(300,300);
+	float radius = 50.0f;
+	static b2Body* dynamicBody3;
+
+	b2BodyDef myBodyDef;
+	myBodyDef.type = b2_dynamicBody;
+	myBodyDef.position.Set(nBallPos.x, nBallPos.y); //startpos
+
+	static b2FixtureDef circleDef;
+	static b2CircleShape dynamicCircle;
+
+	dynamicCircle.m_radius = 10;
+	dynamicCircle.m_p.Set(0,0);
+	circleDef.shape = &dynamicCircle;
+	circleDef.restitution = 1.0f;
+	circleDef.density = 1.0f;
+	circleDef.friction = 0.8f;
+	//dynamicBody3->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
+	dynamicBody3 = m_world->CreateBody(&myBodyDef);
+	dynamicBody3->CreateFixture(&circleDef);
+
+	dynamicBody3->SetLinearVelocity(myRand(20));
+}
 
 int main()
 {
+	srand((time(NULL)));
 	//Creates a window using SFML
 	sf::RenderWindow window(sf::VideoMode(600, 600, 32), "SFML Test", sf::Style::Default);
 
 	//Defines gravity and sets up the game world in Box2D
-	b2Vec2 gravity(0, 9.8f);
-	b2World* m_world = new b2World(gravity);
+	b2Vec2 gravity(0, 0);
+	m_world = new b2World(gravity);
 
 	//Creates a new shape in SFML which we use later to draw the shapes
 	sf::ConvexShape cShape;
@@ -28,7 +77,7 @@ int main()
 	//Set the body to be dynamic (means it can move through the gameworld and can be knocked around by other objects)
 	myBodyDef.type = b2_dynamicBody;
 	//Set its position in the world
-	myBodyDef.position.Set(300, 10);
+	myBodyDef.position.Set(285, 10);
 	//The starting angle of the body
 	myBodyDef.angle = 0;
 	//Add this body to the world
@@ -92,24 +141,33 @@ int main()
 	staticBody->CreateFixture(&polyFixtureDef);
 
 	//circle
-	float radius = 50.0f;
-	sf::CircleShape circle;
-	circle.setFillColor(sf::Color::Red);
-	circle.setRadius(radius);
 
-	myBodyDef.type = b2_dynamicBody;
-	myBodyDef.position.Set(200, -20); //startpos
-	b2Body* dynamicBody3 = m_world->CreateBody(&myBodyDef);
+	int ballCount = 6;
 
-	b2FixtureDef circleDef;
-	b2CircleShape dynamicCircle;
-	dynamicCircle.m_radius = 50;
-	dynamicCircle.m_p.Set(0,0);
-	circleDef.shape = &dynamicCircle;
-	circleDef.restitution = 0.5f;
-	circleDef.density = 1.0f;
-	circleDef.friction = 0.8f;
-	dynamicBody3->CreateFixture(&circleDef);
+	for(int i = 0; i < ballCount; ++i) {
+		float radius = 50.0f;
+		static b2Body* dynamicBody3;
+	
+		myBodyDef.type = b2_dynamicBody;
+		myBodyDef.position.Set((i*100)+50, 20); //startpos
+
+		static b2FixtureDef circleDef;
+		static b2CircleShape dynamicCircle;
+
+		dynamicCircle.m_radius = 10;
+		dynamicCircle.m_p.Set(0,0);
+		circleDef.shape = &dynamicCircle;
+		circleDef.restitution = 1.0f;
+		circleDef.density = 1.0f;
+		circleDef.friction = 0.8f;
+		//dynamicBody3->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
+		dynamicBody3 = m_world->CreateBody(&myBodyDef);
+		dynamicBody3->CreateFixture(&circleDef);
+		dynamicBody3->SetLinearVelocity(b2Vec2(0.5f, 20.0f));
+	}
+	
+
+
 
 	//texture
 
@@ -117,17 +175,11 @@ int main()
 	ballTexture.loadFromFile("ball.png");
 	sf::Sprite ballSprite;
 	ballSprite.setTexture(ballTexture);
-	ballSprite.setPosition(sf::Vector2f(10,10));
-	b2PolygonShape ballShape;
-	b2FixtureDef ballFixtureDef;
-	ballFixtureDef.shape = &ballShape;
-	myBodyDef.type = b2_dynamicBody;
-	myBodyDef.position.Set(300, 300);
-	b2Body* dynamicBody4 = m_world->CreateBody(&myBodyDef);
-	dynamicBody4->CreateFixture(&ballFixtureDef);
+	ballTexture.setSmooth(true);
+
+
+
 	
-
-
 	//This loops through the window, so while the window is open
 	while (window.isOpen())
 	{
@@ -141,6 +193,13 @@ int main()
 				window.close();
 		}
 
+		static bool ballbool = true;
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ballbool) {
+			newBall();
+			ballbool = false;
+		} else if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+			ballbool = true;
+		}
 		//Clear the window every frame to black
 		window.clear(sf::Color::Black);
 		//Step through the Box2D world, if we dont do this, box2D would not perform any physics calculations
@@ -186,33 +245,17 @@ int main()
 					window.draw(cShape);
 
 				} else if (f->GetType() == b2CircleShape::e_circle) {
-					//b2CircleShape* c = (b2CircleShape*)f->GetShape();
-					//size = c->GetVertexCount();
-					//circle.setPointCount();
-					//for(int i = 0; i < size; i++) {
-					//	v = c ->GetVertex(i);
-					//	circle.setRadius(radius);
-					//}
+					static sf::Sprite bSprite;
+
 					b2PolygonShape* s = (b2PolygonShape*) f->GetShape();
-					circle.setRadius(s->m_radius);
-					circle.setPosition(f->GetBody()->GetPosition().x - circle.getRadius(), f->GetBody()->GetPosition().y - circle.getRadius());
-					window.draw(circle);
-
-										static sf::Sprite bSprite;
-
-					bSprite.setScale(0.2f,0.2f);
-					bSprite.setPosition (0, 0);
 					bSprite.setTexture(ballTexture);
-					bSprite.setOrigin(150,150);
-					bSprite.setScale((s->m_radius*0.01)/1.5,(s->m_radius*0.01)/1.5);
+					bSprite.setOrigin(50,50);
+					//bSprite.setScale((s->m_radius*0.01)/1.5,(s->m_radius*0.01)/1.5);
+					bSprite.setScale((s->m_radius*0.01)*2,(s->m_radius*0.01)*2);
 					
 					bSprite.setPosition (f->GetBody()->GetPosition().x, f->GetBody()->GetPosition().y);
 					window.draw(bSprite);
 				}
-
-				/*TODO
-				Add functions to allow lines, boxes and circles to be drawn
-				*/
 			}
 		}
 
