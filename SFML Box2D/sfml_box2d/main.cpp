@@ -31,7 +31,7 @@ void newBall()
 {
 	b2Vec2 nBallPos(300,300);
 	float radius = 50.0f;
-	static b2Body* dynamicBody3;
+	static b2Body* dynamicBodyCircle;
 
 	b2BodyDef myBodyDef;
 	myBodyDef.type = b2_dynamicBody;
@@ -46,11 +46,11 @@ void newBall()
 	circleDef.restitution = 1.0f;
 	circleDef.density = 1.0f;
 	circleDef.friction = 0.8f;
-	//dynamicBody3->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
-	dynamicBody3 = m_world->CreateBody(&myBodyDef);
-	dynamicBody3->CreateFixture(&circleDef);
+	//dynamicBodyCircle->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
+	dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+	dynamicBodyCircle->CreateFixture(&circleDef);
 
-	dynamicBody3->SetLinearVelocity(myRand(20));
+	dynamicBodyCircle->SetLinearVelocity(myRand(40));
 }
 
 int main()
@@ -65,7 +65,7 @@ int main()
 
 	//Creates a new shape in SFML which we use later to draw the shapes
 	sf::ConvexShape cShape;
-	cShape.setFillColor(sf::Color::Red);
+	cShape.setFillColor(sf::Color::Color(125,125,100,255));
 
 	/*To draw objects in Box2D we need a body and a fixture, think of a body as an overall
 	container or model of the object with a fixture being the individual parts of the model
@@ -121,32 +121,54 @@ int main()
 	//Add the fixture to the body
 	dynamicBody2->CreateFixture(&polyFixtureDef);
 
-	//Set the body definition to static this time, meaning that it cant be moved around in the game world
+	//court bottom & setup
 	myBodyDef.type = b2_staticBody;
-	//Set its position
-	myBodyDef.position.Set(300,500);
-	//Add it to the world
+	myBodyDef.position.Set(300,600);
 	b2Body* staticBody = m_world->CreateBody(&myBodyDef);
 
-	//This is vertices to create a line along the bottom which infact is just an elongated rectangle
-	b2Vec2 lineV[4];
-	lineV[0].Set(-150, 1);
-	lineV[1].Set(-150, -1);
-	lineV[2].Set(150, -1);
-	lineV[3].Set(150, 1);
+	b2Vec2 courtV[4];
+	courtV[0].Set(-300, 1);
+	courtV[1].Set(-300, -1);
+	courtV[2].Set(300, -1);
+	courtV[3].Set(300, 1);
 
-	//Set the shape to hold the line
-	polyShape.Set(lineV, 4);
-	//Add the line to the gameworld
+	polyShape.Set(courtV, 4);
 	staticBody->CreateFixture(&polyFixtureDef);
+	
+	//court top
+	myBodyDef.type = b2_staticBody;
+	myBodyDef.position.Set(300,0);
+	b2Body* staticBody2 = m_world->CreateBody(&myBodyDef);
+	polyShape.Set(courtV, 4);
+	staticBody2->CreateFixture(&polyFixtureDef);
 
-	//circle
+	//court left & setup
+	myBodyDef.type = b2_staticBody;
+	myBodyDef.position.Set(0,300);
+	b2Body* staticBody3 = m_world->CreateBody(&myBodyDef);
 
+	courtV[0].Set(-1, 300);
+	courtV[1].Set(-1, -300);
+	courtV[2].Set(1, -300);
+	courtV[3].Set(1, 300);
+
+	polyShape.Set(courtV, 4);
+	staticBody3->CreateFixture(&polyFixtureDef);
+
+	//court right
+	myBodyDef.type = b2_staticBody;
+	myBodyDef.position.Set(600,300);
+	b2Body* staticBody4 = m_world->CreateBody(&myBodyDef);
+	polyShape.Set(courtV, 4);
+	staticBody4->CreateFixture(&polyFixtureDef);
+
+	
+	//circle shape setup
 	int ballCount = 6;
 
 	for(int i = 0; i < ballCount; ++i) {
 		float radius = 50.0f;
-		static b2Body* dynamicBody3;
+		static b2Body* dynamicBodyCircle;
 	
 		myBodyDef.type = b2_dynamicBody;
 		myBodyDef.position.Set((i*100)+50, 20); //startpos
@@ -160,10 +182,10 @@ int main()
 		circleDef.restitution = 1.0f;
 		circleDef.density = 1.0f;
 		circleDef.friction = 0.8f;
-		//dynamicBody3->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
-		dynamicBody3 = m_world->CreateBody(&myBodyDef);
-		dynamicBody3->CreateFixture(&circleDef);
-		dynamicBody3->SetLinearVelocity(b2Vec2(0.5f, 20.0f));
+		//dynamicBodyCircle->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
+		dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+		dynamicBodyCircle->CreateFixture(&circleDef);
+		dynamicBodyCircle->SetLinearVelocity(b2Vec2(0.5f, 20.0f));
 	}
 	
 
@@ -172,7 +194,7 @@ int main()
 	//texture
 
 	sf::Texture ballTexture;
-	ballTexture.loadFromFile("ball.png");
+	ballTexture.loadFromFile("ball3.png");
 	sf::Sprite ballSprite;
 	ballSprite.setTexture(ballTexture);
 	ballTexture.setSmooth(true);
@@ -200,6 +222,7 @@ int main()
 		} else if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			ballbool = true;
 		}
+
 		//Clear the window every frame to black
 		window.clear(sf::Color::Black);
 		//Step through the Box2D world, if we dont do this, box2D would not perform any physics calculations
