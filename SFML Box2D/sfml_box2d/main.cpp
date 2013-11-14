@@ -108,8 +108,9 @@ int main()
 	b2BodyDef shipDef;
 	shipDef.type = b2_dynamicBody;
 	shipDef.position.Set(150,150);
-	shipDef.angle = 10.0f;
+	shipDef.angle = 0.0f;
 	b2Body* dynamicShip = m_world->CreateBody(&shipDef);
+	
 	
 	b2Vec2 shipVerts[6];
 	shipVerts[0].Set(30,0);
@@ -123,8 +124,7 @@ int main()
 	polyShape.Set(shipVerts, 6);
 	dynamicShip->CreateFixture(&polyFixtureDef);
 
-	
-	
+
 
 	//court bottom & setup
 	myBodyDef.type = b2_staticBody;
@@ -196,16 +196,21 @@ int main()
 
 
 
-	//texture
+	//textures
 
 	sf::Texture ballTexture;
 	ballTexture.loadFromFile("ball3.png");
-	sf::Sprite ballSprite;
-	ballSprite.setTexture(ballTexture);
 	ballTexture.setSmooth(true);
 
+	sf::Texture shipTexture;
+	shipTexture.loadFromFile("ship.png");
+	sf::Sprite shipSprite;
+	shipSprite.setTexture(shipTexture);
+	ballTexture.setSmooth(true);
 
-
+	shipSprite.setOrigin(150,150);
+	shipSprite.setScale(0.1f,0.1f);
+	b2Vec2 pos; //used for finding the ship's origin
 	
 	//This loops through the window, so while the window is open
 	while (window.isOpen())
@@ -220,6 +225,14 @@ int main()
 				window.close();
 		}
 
+		//update the ship sprite
+		pos = dynamicShip->GetWorldCenter();
+		shipSprite.setPosition(pos.x, pos.y);
+		shipSprite.setRotation(dynamicShip->GetAngle() * (180.0f / b2_pi));
+
+
+
+		//spawn new ball test
 		static bool ballbool = true;
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ballbool) {
 			newBall();
@@ -313,6 +326,7 @@ int main()
 
 					//Draws the shape onto the window
 					window.draw(cShape);
+					window.draw(shipSprite);
 
 				} else if (f->GetType() == b2CircleShape::e_circle) {
 					static sf::Sprite bSprite;
