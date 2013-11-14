@@ -59,31 +59,21 @@ int main()
 	//Creates a window using SFML
 	sf::RenderWindow window(sf::VideoMode(600, 600, 32), "SFML Test", sf::Style::Default);
 
-	//Defines gravity and sets up the game world in Box2D
+	//b2d world
 	b2Vec2 gravity(0, 0);
 	m_world = new b2World(gravity);
 
-	//Creates a new shape in SFML which we use later to draw the shapes
+	//shape setup for obstacles
+	//object1 and setup for 2+
 	sf::ConvexShape cShape;
 	cShape.setFillColor(sf::Color::Color(125,125,100,255));
 
-	/*To draw objects in Box2D we need a body and a fixture, think of a body as an overall
-	container or model of the object with a fixture being the individual parts of the model
-	ie a car where the overall car is the body with fixtures such as the wheels and steering wheel
-	as part of the overall car body*/
-
-	//Define a new body
 	b2BodyDef myBodyDef;
-	//Set the body to be dynamic (means it can move through the gameworld and can be knocked around by other objects)
 	myBodyDef.type = b2_dynamicBody;
-	//Set its position in the world
 	myBodyDef.position.Set(285, 10);
-	//The starting angle of the body
 	myBodyDef.angle = 0;
-	//Add this body to the world
 	b2Body* dynamicBody1 = m_world->CreateBody(&myBodyDef);
 
-	//Create some vertices to make a shape, in this case it makes a 5 sided polygon
 	b2Vec2 vertices[5];
     vertices[0].Set(-10, 50);
     vertices[1].Set(-10,  0);
@@ -91,35 +81,50 @@ int main()
     vertices[3].Set( 10,  0);
     vertices[4].Set( 10,  50);
 
-	//Create a new polygon shape to store these vertices and turn them into a shape
 	b2PolygonShape polyShape;
 	polyShape.Set(vertices, 5);
 
-	//Create a new fixture where you can store the shape
 	b2FixtureDef polyFixtureDef;
-	//Set the shape of the fixture to contain the polygon shape
 	polyFixtureDef.shape = &polyShape;
-	//Set the weight of the object. Note: having no weight means it wont react properly with objects!
 	polyFixtureDef.density = 1;
-	//Add this fixture to the body we made previously
+	polyFixtureDef.restitution = 1.0f;
 	dynamicBody1->CreateFixture(&polyFixtureDef);
 
-	//You can use the same definition of a body again, but make sure when you add it to the world it is something different!
+	//object2
 	myBodyDef.position.Set(430, 120);
-	//Add it to the game world
 	b2Body* dynamicBody2 = m_world->CreateBody(&myBodyDef);
 
-	//A reversed set of vertices than before
     vertices[0].Set(10, -20);
     vertices[1].Set(10, 0);
     vertices[2].Set(0, 30);
     vertices[3].Set(-10, 0);
     vertices[4].Set(-10, -10);
 
-	//Set the poly shape to contain these new vertices
 	polyShape.Set(vertices, 5);
-	//Add the fixture to the body
 	dynamicBody2->CreateFixture(&polyFixtureDef);
+
+	
+	//player ship
+	b2BodyDef shipDef;
+	shipDef.type = b2_dynamicBody;
+	shipDef.position.Set(150,150);
+	shipDef.angle = 10.0f;
+	b2Body* dynamicShip = m_world->CreateBody(&shipDef);
+	
+	b2Vec2 shipVerts[6];
+	shipVerts[0].Set(30,0);
+	shipVerts[1].Set(30,20);
+	shipVerts[2].Set(20,30);
+	shipVerts[3].Set(10,30);
+	shipVerts[4].Set(0,20);
+	shipVerts[5].Set(0,0);
+
+
+	polyShape.Set(shipVerts, 6);
+	dynamicShip->CreateFixture(&polyFixtureDef);
+
+	
+	
 
 	//court bottom & setup
 	myBodyDef.type = b2_staticBody;
@@ -221,6 +226,48 @@ int main()
 			ballbool = false;
 		} else if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			ballbool = true;
+		}
+
+		//boost ship
+		static bool shiftDown = true;
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) && shiftDown) {
+			dynamicShip->SetLinearVelocity(b2Vec2(-40.0f * sinf(dynamicShip->GetAngle()),( 40.0f * cosf(dynamicShip->GetAngle()))    ));
+			shiftDown = false;
+		} else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
+			shiftDown = true;
+		}
+
+		//ship forward
+		static bool wDown = false;
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+			wDown = true;
+		} else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+			wDown = false;
+		}
+		if (wDown){
+			dynamicShip->ApplyLinearImpulse(b2Vec2(-40.0f * sinf(dynamicShip->GetAngle()),( 40.0f * cosf(dynamicShip->GetAngle()))), dynamicShip->GetWorldCenter());
+		}
+
+		//rotate ship Counter-Clockwise
+		static bool aDown = false;
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+			aDown = true;
+		} else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+			aDown = false;
+		}
+		if (aDown){
+			dynamicShip->SetAngularVelocity(dynamicShip->GetAngularVelocity() - 0.005f);
+		}
+
+		//rotate ship Clockwise
+		static bool dDown = false;
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+			dDown = true;
+		} else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+			dDown = false;
+		}
+		if (dDown== true){
+			dynamicShip->SetAngularVelocity(dynamicShip->GetAngularVelocity() + 0.005f);
 		}
 
 		//Clear the window every frame to black
