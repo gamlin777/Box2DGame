@@ -9,7 +9,6 @@
 
 
 b2World* m_world;
-
 b2Vec2 myRand (int strength) {
 	// Create 2 random floats and treat them as a vector
 	float rX = rand() % 200;
@@ -57,7 +56,7 @@ int main()
 {
 	srand((time(NULL)));
 	//Creates a window using SFML
-	sf::RenderWindow window(sf::VideoMode(600, 600, 32), "SFML Test", sf::Style::Default);
+	sf::RenderWindow window(sf::VideoMode(600, 600, 32), "J Gamlin Box2D", sf::Style::Default);
 
 	//b2d world
 	b2Vec2 gravity(0, 0);
@@ -112,16 +111,18 @@ int main()
 	b2Body* dynamicShip = m_world->CreateBody(&shipDef);
 	
 	
-	b2Vec2 shipVerts[6];
-	shipVerts[0].Set(30,0);
+	b2Vec2 shipVerts[8];
+	shipVerts[0].Set(30,10);
 	shipVerts[1].Set(30,20);
 	shipVerts[2].Set(20,30);
 	shipVerts[3].Set(10,30);
 	shipVerts[4].Set(0,20);
-	shipVerts[5].Set(0,0);
+	shipVerts[5].Set(0,10);
+	shipVerts[6].Set(10,0);
+	shipVerts[7].Set(20,0);
 
 
-	polyShape.Set(shipVerts, 6);
+	polyShape.Set(shipVerts, 8);
 	dynamicShip->CreateFixture(&polyFixtureDef);
 
 
@@ -170,6 +171,8 @@ int main()
 	
 	//circle shape setup
 	int ballCount = 6;
+	b2FixtureDef circleDef;
+	b2CircleShape dynamicCircle;
 
 	for(int i = 0; i < ballCount; ++i) {
 		float radius = 50.0f;
@@ -177,9 +180,6 @@ int main()
 	
 		myBodyDef.type = b2_dynamicBody;
 		myBodyDef.position.Set((i*100)+50, 20); //startpos
-
-		static b2FixtureDef circleDef;
-		static b2CircleShape dynamicCircle;
 
 		dynamicCircle.m_radius = 10;
 		dynamicCircle.m_p.Set(0,0);
@@ -199,19 +199,34 @@ int main()
 	//textures
 
 	sf::Texture ballTexture;
-	ballTexture.loadFromFile("ball3.png");
+	ballTexture.loadFromFile("assets/ball3.png");
 	ballTexture.setSmooth(true);
 
 	sf::Texture shipTexture;
-	shipTexture.loadFromFile("ship.png");
+	sf::Texture shipTexture1;
+	sf::Texture shipTexture2;
+
+
+	shipTexture.loadFromFile("assets/ship.png");
+	shipTexture1.loadFromFile("assets/shipforward.png");
+	shipTexture2.loadFromFile("assets/shipboost.png");
 	sf::Sprite shipSprite;
 	shipSprite.setTexture(shipTexture);
 	ballTexture.setSmooth(true);
 
 	shipSprite.setOrigin(150,150);
-	shipSprite.setScale(0.1f,0.1f);
+	shipSprite.setScale(0.15f,0.15f);
 	b2Vec2 pos; //used for finding the ship's origin
+
+	//sf::Texture backdropTexture;
+	//backdropTexture.loadFromFile("assets/backdrop.png");
+	//sf::Sprite backdrop;
+	//backdropTexture.setSmooth(true);
+	//backdrop.setTexture(backdropTexture);
+	//backdrop.setPosition(300,300);
+	//backdrop.setOrigin(300,300);
 	
+
 	//This loops through the window, so while the window is open
 	while (window.isOpen())
 	{
@@ -224,7 +239,6 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
-
 		//update the ship sprite
 		pos = dynamicShip->GetWorldCenter();
 		shipSprite.setPosition(pos.x, pos.y);
@@ -243,22 +257,35 @@ int main()
 
 		//boost ship
 		static bool shiftDown = true;
+		static bool wDown = false;
+
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) && shiftDown) {
+			shipSprite.setTexture(shipTexture2);
 			dynamicShip->SetLinearVelocity(b2Vec2(-40.0f * sinf(dynamicShip->GetAngle()),( 40.0f * cosf(dynamicShip->GetAngle()))    ));
 			shiftDown = false;
 		} else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
 			shiftDown = true;
+			if (!wDown){
+				shipSprite.setTexture(shipTexture);
+			}
 		}
 
 		//ship forward
-		static bool wDown = false;
+		
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 			wDown = true;
 		} else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 			wDown = false;
+			if (shiftDown){
+				shipSprite.setTexture(shipTexture);
+			}
 		}
 		if (wDown){
+			shipSprite.setTexture(shipTexture1);
 			dynamicShip->ApplyLinearImpulse(b2Vec2(-40.0f * sinf(dynamicShip->GetAngle()),( 40.0f * cosf(dynamicShip->GetAngle()))), dynamicShip->GetWorldCenter());
+			if (!shiftDown) {
+				shipSprite.setTexture(shipTexture2);
+			}
 		}
 
 		//rotate ship Counter-Clockwise
@@ -285,6 +312,7 @@ int main()
 
 		//Clear the window every frame to black
 		window.clear(sf::Color::Black);
+
 		//Step through the Box2D world, if we dont do this, box2D would not perform any physics calculations
 		//If the world is running to fast or too slow try changing the 500.0f, lower if running to slow or higher if going to fast
 		m_world->Step((1.0f / 200.0f), 10, 8);
@@ -295,7 +323,6 @@ int main()
 
 		/*Ok so now this code below gets every object that is currently in Box2D and sends it all to SFML to be drawn
 		this is so we can actually get the shapes drawn on the screen as Box2D only has very basic draw functions*/
-
 		//This loops through every single body in the game world
 		for(b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
 		{
@@ -307,6 +334,7 @@ int main()
 				{
 					//Stores a pointer to the shape stored in the fixture
 					b2PolygonShape* s = (b2PolygonShape*)f->GetShape();
+					//window.draw(backdrop);
 
 					//Get the amount of vertices stored in the shape
 					size = s->GetVertexCount();
@@ -321,7 +349,6 @@ int main()
 						v = s->GetVertex(i);
 						//Converts the vertex from its local space to where it is in the world
 						cShape.setPoint(i, sf::Vector2f(b->GetWorldVector(v).x + b->GetPosition().x, b->GetWorldVector(v).y + b->GetPosition().y));
-					
 					}
 
 					//Draws the shape onto the window
@@ -329,8 +356,8 @@ int main()
 					window.draw(shipSprite);
 
 				} else if (f->GetType() == b2CircleShape::e_circle) {
-					static sf::Sprite bSprite;
 
+					static sf::Sprite bSprite;
 					b2PolygonShape* s = (b2PolygonShape*) f->GetShape();
 					bSprite.setTexture(ballTexture);
 					bSprite.setOrigin(50,50);
