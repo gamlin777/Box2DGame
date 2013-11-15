@@ -1,4 +1,17 @@
-//#include <stdio.h>
+/*
+JGamlin Box2d Game
+
+Note: Object ID's are as follows:
+	Ship: 5
+	n_ball: 6 (balls)
+	debris: 3
+	bottom court: 2
+	top court: 1
+	right court: 7
+	left court: 8
+
+
+*/
 #include <Box2D/Box2D.h>
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
@@ -18,6 +31,10 @@ struct objectData {
 	
 bool startBalls = true;
 int numBalls = 0;
+void newBall(float x, float y);
+b2Vec2 myRand (int strength);
+
+
 
 class MyListener : public b2ContactListener
 {
@@ -26,9 +43,16 @@ class MyListener : public b2ContactListener
 		b2Fixture* GetFixtureB();
 		objectData* contactA = (objectData*)contact->GetFixtureA()->GetBody()->GetUserData();
 		objectData* contactB = (objectData*)contact->GetFixtureB()->GetBody()->GetUserData();
+		b2Vec2 splitterA = contact->GetFixtureA()->GetBody()->GetPosition();
+		b2Vec2 splitterB = contact->GetFixtureB()->GetBody()->GetPosition();
 
- 		int aa= contactA->id;
+		//contact a & b's type id
+ 		int aa = contactA->id;
 		int bb = contactB->id;
+		
+		//contact a & b's bounce count (used for balls only)
+		int ac = contactA->bounceCount;
+		int bc = contactB->bounceCount;
 
 		if(aa == 5){
 			printf("contactA: ship\n");
@@ -38,7 +62,8 @@ class MyListener : public b2ContactListener
 			printf("contactA: court\n");
 		} else if(aa == 6){
 			printf("contactA: newball\n");
-			printf("AballId = %i", contactA->ballId);
+			printf("AballId = %i\n", contactA->ballId);
+			printf("A's BounceCount= %i\n", contactA->bounceCount);
 		} else if(aa == 3){
 			printf("contactA: debris\n");
 		}
@@ -47,11 +72,66 @@ class MyListener : public b2ContactListener
 			printf("contactB: ship\n");
 		} else if(bb == 6){ 
 			printf("contactB: n_ball\n");
-			printf("BballId = %i", contactB->ballId);
+			printf("BballId = %i\n", contactB->ballId);
+			printf("B's BounceCount= %i\n", contactB->bounceCount);
+			if(aa == 2){ //bounces on bottom court
+				contactB->bounceCount += 1;
+				if(bc >= 6){
+					if(splitterB.x > 300.0f) {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x - 20.0f, splitterB.y);
+					} else {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x + 20.0f, splitterB.y);
+					}
+				}
+			}
+			if(aa == 1){ //bounces on top court
+				contactB->bounceCount += 1;
+				if(bc >= 6){
+					if(splitterB.x > 300.0f) {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x - 20.0f, splitterB.y);
+					} else {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x + 20.0f, splitterB.y);
+					}
+				}
+			}
+			if(aa == 7){ // bounces on right court
+				contactB->bounceCount += 1;
+				if(bc >= 6){
+					if(splitterB.y > 300.0f) {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x, splitterB.y - 20.0f);
+					} else {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x, splitterB.y + 20.0f);
+					}
+				}
+			}
+			if(aa == 8){ // bounces on left
+				contactB->bounceCount += 1;
+				if(bc >= 6){
+					if(splitterB.y > 300.0f) {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x, splitterB.y - 20.0f);
+					} else {
+						contactB->bounceCount = 0;
+						m_world->Step((1.0f / 200.0f), 10, 8);
+						newBall(splitterB.x, splitterB.y + 20.0f);
+					}
+				}
+			}
 		} else if(bb == 2){ 
 			printf("contactB: court\n");
-		} else if(bb == 6){ 
-			printf("contactB: newball\n");
 		} else if(bb == 3){ 
 			printf("contactB: debris\n");
 		} else if(bb == 4){ 
@@ -61,83 +141,6 @@ class MyListener : public b2ContactListener
 	}
 };
 
-
-b2Vec2 myRand (int strength) {
-	// Create 2 random floats and treat them as a vector
-	float rX = rand() % 200;
-	rX *= 0.01f;
-	--rX;
-
-	float rY = rand() % 200;
-	rY *= 0.01f;
-	--rY;
-
-	b2Vec2 v(rX,rY);
-	v.Normalize();
-	v *= strength;
-
-	return v;
-}
-
-void newBall()
-{
-	b2BodyDef myBodyDef;
-	static b2Body* dynamicBodyCircle;
-	static b2FixtureDef circleDef;
-	static b2CircleShape dynamicCircle;
-	objectData* new_b = new objectData;
-
-	
-	
-	////////////////////////////////////////////////////////////////////////////
-	if (startBalls){
-		for(int i = 0; i < 3; ++i) {
-			float radius = 50.0f;
-	
-			new_b = new objectData;
-			new_b->id = 6;
-			myBodyDef.type = b2_dynamicBody;
-			myBodyDef.position.Set((i*100)+50, 20); //startpos
-
-			dynamicCircle.m_radius = 10;
-			dynamicCircle.m_p.Set(0,0);
-			circleDef.shape = &dynamicCircle;
-			circleDef.restitution = 1.0f;
-			circleDef.density = 1.0f;
-			circleDef.friction = 0.8f;
-			dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
-			dynamicBodyCircle->CreateFixture(&circleDef);
-			dynamicBodyCircle->SetLinearVelocity(myRand(40));
-			new_b->ballId = numBalls;
-			dynamicBodyCircle->SetUserData(new_b);
-			numBalls++;
-		}
-		startBalls = false;
-	}
-
-	///////////////////////////////////////////////////////////////////////////
-	new_b = new objectData;
-	new_b->id = 6;
-	b2Vec2 nBallPos(300,300);
-	float radius = 50.0f;
-	
-	myBodyDef.type = b2_dynamicBody;
-	myBodyDef.position.Set(nBallPos.x, nBallPos.y); //startpos
-
-	dynamicCircle.m_radius = 10;
-	dynamicCircle.m_p.Set(0,0);
-	circleDef.shape = &dynamicCircle;
-	circleDef.restitution = 1.0f;
-	circleDef.density = 1.0f;
-	circleDef.friction = 0.8f;
-	dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
-	new_b->ballId = numBalls;
-	numBalls++;
-	dynamicBodyCircle->SetUserData(new_b);
-	dynamicBodyCircle->CreateFixture(&circleDef);
-	dynamicBodyCircle->SetLinearVelocity(myRand(40));
-
-};
 int main()
 {
 	srand((time(NULL)));
@@ -150,17 +153,19 @@ int main()
 	MyListener listener;
 	m_world->SetContactListener(&listener);
 
-	//data struct
-	
+	//struct data for object type ID's
 	objectData* ship = new objectData;
 	ship->id = 5;
-	ship->bounceCount = 0;
-	objectData* balls = new objectData;
-	balls->id = 4;
-	balls->bounceCount = 0;
-	objectData* court = new objectData;
-	court->id = 2;
-	court->bounceCount = 0;
+
+	objectData* bot_court = new objectData;
+	bot_court->id = 2;
+	objectData* top_court = new objectData;
+	top_court->id = 1;
+	objectData* right_court = new objectData;
+	right_court->id = 7;
+	objectData* left_court = new objectData;
+	left_court->id = 8;
+
 	objectData* debris = new objectData;
 	debris->id = 3;
 
@@ -239,7 +244,7 @@ int main()
 	myBodyDef.type = b2_staticBody;
 	myBodyDef.position.Set(300,600);
 	b2Body* staticBody = m_world->CreateBody(&myBodyDef);
-	staticBody->SetUserData(court);
+	staticBody->SetUserData(bot_court);
 
 
 	b2Vec2 courtV[4];
@@ -257,13 +262,13 @@ int main()
 	b2Body* staticBody2 = m_world->CreateBody(&myBodyDef);
 	polyShape.Set(courtV, 4);
 	staticBody2->CreateFixture(&courtDef);
-	staticBody2->SetUserData(court);
+	staticBody2->SetUserData(top_court);
 
 	//court left & setup
 	myBodyDef.type = b2_staticBody;
 	myBodyDef.position.Set(0,300);
 	b2Body* staticBody3 = m_world->CreateBody(&myBodyDef);
-	staticBody3->SetUserData(court);
+	staticBody3->SetUserData(left_court);
 
 	courtV[0].Set(-1, 298);
 	courtV[1].Set(-1, -298);
@@ -279,11 +284,10 @@ int main()
 	b2Body* staticBody4 = m_world->CreateBody(&myBodyDef);
 	polyShape.Set(courtV, 4);
 	staticBody4->CreateFixture(&courtDef);
-	staticBody4->SetUserData(court);
+	staticBody4->SetUserData(right_court);
 
 	
 	//circle shape setup
-	int ballCount = 6;
 	b2FixtureDef circleDef;
 	b2CircleShape dynamicCircle;
 
@@ -363,8 +367,8 @@ int main()
 		//spawn new ball test
 		static bool ballbool = true;
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ballbool) {
-			newBall();
-			ballCount++;
+			newBall(300,300);
+
 			ballbool = false;
 		} else if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			ballbool = true;
@@ -423,6 +427,10 @@ int main()
 		}
 		if (dDown== true){
 			dynamicShip->SetAngularVelocity(dynamicShip->GetAngularVelocity() + 0.005f);
+		}
+
+		for(int i = 0; i < numBalls; i++){
+
 		}
 
 		//Clear the window every frame to black
@@ -494,3 +502,81 @@ int main()
 
 	return 0;
 }
+void newBall(float x, float y)
+{
+	b2BodyDef myBodyDef;
+	static b2Body* dynamicBodyCircle;
+	static b2FixtureDef circleDef;
+	static b2CircleShape dynamicCircle;
+	objectData* new_b = new objectData;
+
+	
+	
+	////////////////////////////////////////////////////////////////////////////
+	if (startBalls){
+		for(int i = 0; i < 1; ++i) {
+			float radius = 50.0f;
+	
+			new_b = new objectData;
+			new_b->bounceCount = 0;
+			new_b->id = 6;
+			myBodyDef.type = b2_dynamicBody;
+			myBodyDef.position.Set((i*100)+50, 20); //startpos
+
+			dynamicCircle.m_radius = 10;
+			dynamicCircle.m_p.Set(0,0);
+			circleDef.shape = &dynamicCircle;
+			circleDef.restitution = 1.0f;
+			circleDef.density = 1.0f;
+			circleDef.friction = 0.8f;
+			dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+			dynamicBodyCircle->CreateFixture(&circleDef);
+			dynamicBodyCircle->SetLinearVelocity(myRand(40));
+			new_b->ballId = numBalls;
+			dynamicBodyCircle->SetUserData(new_b);
+			numBalls++;
+		}
+		startBalls = false;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	new_b = new objectData;
+	new_b->id = 6;
+	new_b->bounceCount = 0;
+	b2Vec2 nBallPos(x,y);
+	float radius = 50.0f;
+	
+	myBodyDef.type = b2_dynamicBody;
+	myBodyDef.position.Set(nBallPos.x, nBallPos.y); //startpos
+
+	dynamicCircle.m_radius = 10;
+	dynamicCircle.m_p.Set(0,0);
+	circleDef.shape = &dynamicCircle;
+	circleDef.restitution = 1.0f;
+	circleDef.density = 1.0f;
+	circleDef.friction = 0.8f;
+	dynamicBodyCircle = m_world->CreateBody(&myBodyDef); //breaks
+	new_b->ballId = numBalls;
+	numBalls++;
+	dynamicBodyCircle->SetUserData(new_b);
+	dynamicBodyCircle->CreateFixture(&circleDef);
+	dynamicBodyCircle->SetLinearVelocity(myRand(40));
+
+};
+
+b2Vec2 myRand (int strength) {
+	// Create 2 random floats and treat them as a vector
+	float rX = rand() % 200;
+	rX *= 0.01f;
+	--rX;
+
+	float rY = rand() % 200;
+	rY *= 0.01f;
+	--rY;
+
+	b2Vec2 v(rX,rY);
+	v.Normalize();
+	v *= strength;
+
+	return v;
+};
