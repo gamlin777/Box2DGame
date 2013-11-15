@@ -15,56 +15,50 @@ struct objectData {
 	int ballId;
 	int bounceCount;
 };
+	
+bool startBalls = true;
+int numBalls = 0;
 
 class MyListener : public b2ContactListener
 {
-void BeginContact(b2Contact *contact)  {
-	b2Fixture* GetFixtureA();
-	b2Fixture* GetFixtureB();
-	objectData* contactA = (objectData*)contact->GetFixtureA()->GetBody()->GetUserData();
-	objectData* contactB = (objectData*)contact->GetFixtureB()->GetBody()->GetUserData();
- 	int aa= contactA->id;
-	int bb = contactB->id;
+	void BeginContact(b2Contact *contact)  {
+		b2Fixture* GetFixtureA();
+		b2Fixture* GetFixtureB();
+		objectData* contactA = (objectData*)contact->GetFixtureA()->GetBody()->GetUserData();
+		objectData* contactB = (objectData*)contact->GetFixtureB()->GetBody()->GetUserData();
 
-	/*if(aa = 5){
-		printf("contactA: ship");
-	}*/
-	if(aa = 4){
-		
-		printf("contactA: ball\n");
+ 		int aa= contactA->id;
+		int bb = contactB->id;
+
+		if(aa == 5){
+			printf("contactA: ship\n");
+		} else if(aa == 4){
+			printf("contactA: ball\n");
+		} else if(aa == 2){
+			printf("contactA: court\n");
+		} else if(aa == 6){
+			printf("contactA: newball\n");
+			printf("AballId = %i", contactA->ballId);
+		} else if(aa == 3){
+			printf("contactA: debris\n");
+		}
+
+		if(bb == 5){
+			printf("contactB: ship\n");
+		} else if(bb == 6){ 
+			printf("contactB: n_ball\n");
+			printf("BballId = %i", contactB->ballId);
+		} else if(bb == 2){ 
+			printf("contactB: court\n");
+		} else if(bb == 6){ 
+			printf("contactB: newball\n");
+		} else if(bb == 3){ 
+			printf("contactB: debris\n");
+		} else if(bb == 4){ 
+			printf("contactB: ball\n");
+		}
+
 	}
-	/*if(aa = 2){
-		printf("contactA: court");
-	}
-	printf("CONTACT");
-*/
-	/*if (bodyA = "c"){
-		printf("bodyA is court");
-	} else if (bodyA = "b"){
-		printf("bodyA is ball");
-	} else if (bodyB = "c"){
-		printf("bodyB is court");
-	} else if (bodyB = "b"){
-		printf("bodyB is ball");
-	} else if (contactA = "c"){
-		printf("conA is court");
-	} else if (contactA = "b"){
-		printf("conA is ball");
-	} else if (contactB = "c"){
-		printf("conB is court");
-	} else if (contactB = "b"){
-		printf("conB is ball");
-	}*/
-
-//for(b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())  {
-//	for(b2Fixture* f = b->GetFixtureList(); f; f = f->GetNext())  {
-//		if (f->GetType() == b2CircleShape::e_circle) {
-//			printf("BALL BOUNCED!");
-//		}
-//	}
-//}
-
-}
 };
 
 
@@ -87,19 +81,48 @@ b2Vec2 myRand (int strength) {
 
 void newBall()
 {
-	objectData* new_b = new objectData;
-	new_b->id = 6;
-
-	b2Vec2 nBallPos(300,300);
-	float radius = 50.0f;
-	static b2Body* dynamicBodyCircle;
-
 	b2BodyDef myBodyDef;
-	myBodyDef.type = b2_dynamicBody;
-	myBodyDef.position.Set(nBallPos.x, nBallPos.y); //startpos
-
+	static b2Body* dynamicBodyCircle;
 	static b2FixtureDef circleDef;
 	static b2CircleShape dynamicCircle;
+	objectData* new_b = new objectData;
+
+	
+	
+	////////////////////////////////////////////////////////////////////////////
+	if (startBalls){
+		for(int i = 0; i < 3; ++i) {
+			float radius = 50.0f;
+	
+			new_b = new objectData;
+			new_b->id = 6;
+			myBodyDef.type = b2_dynamicBody;
+			myBodyDef.position.Set((i*100)+50, 20); //startpos
+
+			dynamicCircle.m_radius = 10;
+			dynamicCircle.m_p.Set(0,0);
+			circleDef.shape = &dynamicCircle;
+			circleDef.restitution = 1.0f;
+			circleDef.density = 1.0f;
+			circleDef.friction = 0.8f;
+			dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+			dynamicBodyCircle->CreateFixture(&circleDef);
+			dynamicBodyCircle->SetLinearVelocity(myRand(40));
+			new_b->ballId = numBalls;
+			dynamicBodyCircle->SetUserData(new_b);
+			numBalls++;
+		}
+		startBalls = false;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	new_b = new objectData;
+	new_b->id = 6;
+	b2Vec2 nBallPos(300,300);
+	float radius = 50.0f;
+	
+	myBodyDef.type = b2_dynamicBody;
+	myBodyDef.position.Set(nBallPos.x, nBallPos.y); //startpos
 
 	dynamicCircle.m_radius = 10;
 	dynamicCircle.m_p.Set(0,0);
@@ -108,11 +131,13 @@ void newBall()
 	circleDef.density = 1.0f;
 	circleDef.friction = 0.8f;
 	dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+	new_b->ballId = numBalls;
+	numBalls++;
 	dynamicBodyCircle->SetUserData(new_b);
 	dynamicBodyCircle->CreateFixture(&circleDef);
 	dynamicBodyCircle->SetLinearVelocity(myRand(40));
-}
 
+};
 int main()
 {
 	srand((time(NULL)));
@@ -262,26 +287,26 @@ int main()
 	b2FixtureDef circleDef;
 	b2CircleShape dynamicCircle;
 
-	for(int i = 0; i < ballCount; ++i) {
-		float radius = 50.0f;
-		static b2Body* dynamicBodyCircle;
-	
-		myBodyDef.type = b2_dynamicBody;
-		myBodyDef.position.Set((i*100)+50, 20); //startpos
+	//for(int i = 0; i < ballCount; ++i) {
+	//	float radius = 50.0f;
+	//	static b2Body* dynamicBodyCircle;
+	//
+	//	myBodyDef.type = b2_dynamicBody;
+	//	myBodyDef.position.Set((i*100)+50, 20); //startpos
 
-		dynamicCircle.m_radius = 10;
-		dynamicCircle.m_p.Set(0,0);
-		circleDef.shape = &dynamicCircle;
-		circleDef.restitution = 1.0f;
-		circleDef.density = 1.0f;
-		circleDef.friction = 0.8f;
-		//dynamicBodyCircle->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
-		dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
-		dynamicBodyCircle->CreateFixture(&circleDef);
-		dynamicBodyCircle->SetLinearVelocity(b2Vec2(0.5f, 20.0f));
-		dynamicBodyCircle->SetUserData(balls);
-		
-	}
+	//	dynamicCircle.m_radius = 10;
+	//	dynamicCircle.m_p.Set(0,0);
+	//	circleDef.shape = &dynamicCircle;
+	//	circleDef.restitution = 1.0f;
+	//	circleDef.density = 1.0f;
+	//	circleDef.friction = 0.8f;
+	//	//dynamicBodyCircle->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
+	//	dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+	//	dynamicBodyCircle->CreateFixture(&circleDef);
+	//	dynamicBodyCircle->SetLinearVelocity(b2Vec2(0.5f, 20.0f));
+	//	balls->ballId = i;
+	//	dynamicBodyCircle->SetUserData(balls);
+	//}
 	
 
 
