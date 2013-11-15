@@ -9,6 +9,65 @@
 
 
 b2World* m_world;
+
+struct objectData {
+	int id;
+	int ballId;
+	int bounceCount;
+};
+
+class MyListener : public b2ContactListener
+{
+void BeginContact(b2Contact *contact)  {
+	b2Fixture* GetFixtureA();
+	b2Fixture* GetFixtureB();
+	objectData* contactA = (objectData*)contact->GetFixtureA()->GetBody()->GetUserData();
+	objectData* contactB = (objectData*)contact->GetFixtureB()->GetBody()->GetUserData();
+ 	int aa= contactA->id;
+	int bb = contactB->id;
+
+	/*if(aa = 5){
+		printf("contactA: ship");
+	}*/
+	if(aa = 4){
+		
+		printf("contactA: ball\n");
+	}
+	/*if(aa = 2){
+		printf("contactA: court");
+	}
+	printf("CONTACT");
+*/
+	/*if (bodyA = "c"){
+		printf("bodyA is court");
+	} else if (bodyA = "b"){
+		printf("bodyA is ball");
+	} else if (bodyB = "c"){
+		printf("bodyB is court");
+	} else if (bodyB = "b"){
+		printf("bodyB is ball");
+	} else if (contactA = "c"){
+		printf("conA is court");
+	} else if (contactA = "b"){
+		printf("conA is ball");
+	} else if (contactB = "c"){
+		printf("conB is court");
+	} else if (contactB = "b"){
+		printf("conB is ball");
+	}*/
+
+//for(b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())  {
+//	for(b2Fixture* f = b->GetFixtureList(); f; f = f->GetNext())  {
+//		if (f->GetType() == b2CircleShape::e_circle) {
+//			printf("BALL BOUNCED!");
+//		}
+//	}
+//}
+
+}
+};
+
+
 b2Vec2 myRand (int strength) {
 	// Create 2 random floats and treat them as a vector
 	float rX = rand() % 200;
@@ -28,6 +87,9 @@ b2Vec2 myRand (int strength) {
 
 void newBall()
 {
+	objectData* new_b = new objectData;
+	new_b->id = 6;
+
 	b2Vec2 nBallPos(300,300);
 	float radius = 50.0f;
 	static b2Body* dynamicBodyCircle;
@@ -45,10 +107,9 @@ void newBall()
 	circleDef.restitution = 1.0f;
 	circleDef.density = 1.0f;
 	circleDef.friction = 0.8f;
-	//dynamicBodyCircle->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
 	dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+	dynamicBodyCircle->SetUserData(new_b);
 	dynamicBodyCircle->CreateFixture(&circleDef);
-
 	dynamicBodyCircle->SetLinearVelocity(myRand(40));
 }
 
@@ -57,10 +118,27 @@ int main()
 	srand((time(NULL)));
 	//Creates a window using SFML
 	sf::RenderWindow window(sf::VideoMode(600, 600, 32), "J Gamlin Box2D", sf::Style::Default);
-
+	
 	//b2d world
 	b2Vec2 gravity(0, 0);
 	m_world = new b2World(gravity);
+	MyListener listener;
+	m_world->SetContactListener(&listener);
+
+	//data struct
+	
+	objectData* ship = new objectData;
+	ship->id = 5;
+	ship->bounceCount = 0;
+	objectData* balls = new objectData;
+	balls->id = 4;
+	balls->bounceCount = 0;
+	objectData* court = new objectData;
+	court->id = 2;
+	court->bounceCount = 0;
+	objectData* debris = new objectData;
+	debris->id = 3;
+
 
 	//shape setup for obstacles
 	//object1 and setup for 2+
@@ -69,9 +147,10 @@ int main()
 
 	b2BodyDef myBodyDef;
 	myBodyDef.type = b2_dynamicBody;
-	myBodyDef.position.Set(285, 10);
+	myBodyDef.position.Set(285, 40);
 	myBodyDef.angle = 0;
 	b2Body* dynamicBody1 = m_world->CreateBody(&myBodyDef);
+	dynamicBody1->SetUserData(debris);
 
 	b2Vec2 vertices[5];
     vertices[0].Set(-10, 50);
@@ -92,6 +171,7 @@ int main()
 	//object2
 	myBodyDef.position.Set(430, 120);
 	b2Body* dynamicBody2 = m_world->CreateBody(&myBodyDef);
+	dynamicBody2->SetUserData(debris);
 
     vertices[0].Set(10, -20);
     vertices[1].Set(10, 0);
@@ -109,6 +189,7 @@ int main()
 	shipDef.position.Set(150,150);
 	shipDef.angle = 0.0f;
 	b2Body* dynamicShip = m_world->CreateBody(&shipDef);
+	dynamicShip->SetUserData(ship);
 	
 	
 	b2Vec2 shipVerts[8];
@@ -128,45 +209,52 @@ int main()
 
 
 	//court bottom & setup
+	b2FixtureDef courtDef;
+	courtDef.shape = &polyShape;
 	myBodyDef.type = b2_staticBody;
 	myBodyDef.position.Set(300,600);
 	b2Body* staticBody = m_world->CreateBody(&myBodyDef);
+	staticBody->SetUserData(court);
+
 
 	b2Vec2 courtV[4];
-	courtV[0].Set(-300, 1);
-	courtV[1].Set(-300, -1);
-	courtV[2].Set(300, -1);
-	courtV[3].Set(300, 1);
+	courtV[0].Set(-298, 1);
+	courtV[1].Set(-298, -1);
+	courtV[2].Set(298, -1);
+	courtV[3].Set(298, 1);
 
 	polyShape.Set(courtV, 4);
-	staticBody->CreateFixture(&polyFixtureDef);
+	staticBody->CreateFixture(&courtDef);
 	
 	//court top
 	myBodyDef.type = b2_staticBody;
 	myBodyDef.position.Set(300,0);
 	b2Body* staticBody2 = m_world->CreateBody(&myBodyDef);
 	polyShape.Set(courtV, 4);
-	staticBody2->CreateFixture(&polyFixtureDef);
+	staticBody2->CreateFixture(&courtDef);
+	staticBody2->SetUserData(court);
 
 	//court left & setup
 	myBodyDef.type = b2_staticBody;
 	myBodyDef.position.Set(0,300);
 	b2Body* staticBody3 = m_world->CreateBody(&myBodyDef);
+	staticBody3->SetUserData(court);
 
-	courtV[0].Set(-1, 300);
-	courtV[1].Set(-1, -300);
-	courtV[2].Set(1, -300);
-	courtV[3].Set(1, 300);
+	courtV[0].Set(-1, 298);
+	courtV[1].Set(-1, -298);
+	courtV[2].Set(1, -298);
+	courtV[3].Set(1, 298);
 
 	polyShape.Set(courtV, 4);
-	staticBody3->CreateFixture(&polyFixtureDef);
+	staticBody3->CreateFixture(&courtDef);
 
 	//court right
 	myBodyDef.type = b2_staticBody;
 	myBodyDef.position.Set(600,300);
 	b2Body* staticBody4 = m_world->CreateBody(&myBodyDef);
 	polyShape.Set(courtV, 4);
-	staticBody4->CreateFixture(&polyFixtureDef);
+	staticBody4->CreateFixture(&courtDef);
+	staticBody4->SetUserData(court);
 
 	
 	//circle shape setup
@@ -191,6 +279,8 @@ int main()
 		dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
 		dynamicBodyCircle->CreateFixture(&circleDef);
 		dynamicBodyCircle->SetLinearVelocity(b2Vec2(0.5f, 20.0f));
+		dynamicBodyCircle->SetUserData(balls);
+		
 	}
 	
 
@@ -218,13 +308,13 @@ int main()
 	shipSprite.setScale(0.15f,0.15f);
 	b2Vec2 pos; //used for finding the ship's origin
 
-	//sf::Texture backdropTexture;
-	//backdropTexture.loadFromFile("assets/backdrop.png");
-	//sf::Sprite backdrop;
-	//backdropTexture.setSmooth(true);
-	//backdrop.setTexture(backdropTexture);
-	//backdrop.setPosition(300,300);
-	//backdrop.setOrigin(300,300);
+	sf::Texture backdropTexture;
+	backdropTexture.loadFromFile("assets/backdrop.png");
+	sf::Sprite backdrop;
+	backdropTexture.setSmooth(true);
+	backdrop.setTexture(backdropTexture);
+	backdrop.setPosition(300,300);
+	backdrop.setOrigin(300,300);
 	
 
 	//This loops through the window, so while the window is open
@@ -245,11 +335,11 @@ int main()
 		shipSprite.setRotation(dynamicShip->GetAngle() * (180.0f / b2_pi));
 
 
-
 		//spawn new ball test
 		static bool ballbool = true;
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ballbool) {
 			newBall();
+			ballCount++;
 			ballbool = false;
 		} else if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			ballbool = true;
@@ -312,7 +402,10 @@ int main()
 
 		//Clear the window every frame to black
 		window.clear(sf::Color::Black);
-
+		window.draw(backdrop);
+		//printf("balls: %i \n", ballCount);
+		
+		
 		//Step through the Box2D world, if we dont do this, box2D would not perform any physics calculations
 		//If the world is running to fast or too slow try changing the 500.0f, lower if running to slow or higher if going to fast
 		m_world->Step((1.0f / 200.0f), 10, 8);
@@ -334,7 +427,6 @@ int main()
 				{
 					//Stores a pointer to the shape stored in the fixture
 					b2PolygonShape* s = (b2PolygonShape*)f->GetShape();
-					//window.draw(backdrop);
 
 					//Get the amount of vertices stored in the shape
 					size = s->GetVertexCount();
@@ -372,6 +464,7 @@ int main()
 
 		//Displays the window on screen
 		window.display();
+
 	}
 
 	return 0;
