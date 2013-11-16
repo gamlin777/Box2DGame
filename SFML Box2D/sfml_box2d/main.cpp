@@ -27,12 +27,14 @@ struct objectData {
 	int id;
 	int ballId;
 	int bounceCount;
+	bool bomb;
 };
 	
 bool startBalls = true;
 int numBalls = 0;
 void newBall(float x, float y);
 b2Vec2 myRand (int strength);
+int lives = 3;
 
 
 
@@ -54,26 +56,20 @@ class MyListener : public b2ContactListener
 		int ac = contactA->bounceCount;
 		int bc = contactB->bounceCount;
 
-		if(aa == 5){
-			printf("contactA: ship\n");
-		} else if(aa == 4){
-			printf("contactA: ball\n");
-		} else if(aa == 2){
-			printf("contactA: court\n");
-		} else if(aa == 6){
-			printf("contactA: newball\n");
-			printf("AballId = %i\n", contactA->ballId);
-			printf("A's BounceCount= %i\n", contactA->bounceCount);
-		} else if(aa == 3){
-			printf("contactA: debris\n");
+		if(bb == 5 ){ // ship
+			if ( aa == 6){ // ball
+				contactA->bomb = true;
+				printf("contact A is a bomb\n");
+			}
 		}
-
-		if(bb == 5){
-			printf("contactB: ship\n");
-		} else if(bb == 6){ 
-			printf("contactB: n_ball\n");
-			printf("BballId = %i\n", contactB->ballId);
-			printf("B's BounceCount= %i\n", contactB->bounceCount);
+		if(bb == 6){
+			if(aa == 5){
+				contactB->bomb = true;
+				printf("contact B is a bomb\n");
+			}
+		}
+		//ball to court collision tests & ball spawn
+		if(bb == 6){ 
 			if(aa == 2){ //bounces on bottom court
 				contactB->bounceCount += 1;
 				if(bc >= 6){
@@ -130,14 +126,7 @@ class MyListener : public b2ContactListener
 					}
 				}
 			}
-		} else if(bb == 2){ 
-			printf("contactB: court\n");
-		} else if(bb == 3){ 
-			printf("contactB: debris\n");
-		} else if(bb == 4){ 
-			printf("contactB: ball\n");
-		}
-
+		} 
 	}
 };
 
@@ -287,39 +276,29 @@ int main()
 	staticBody4->SetUserData(right_court);
 
 	
+
 	//circle shape setup
 	b2FixtureDef circleDef;
 	b2CircleShape dynamicCircle;
 
-	//for(int i = 0; i < ballCount; ++i) {
-	//	float radius = 50.0f;
-	//	static b2Body* dynamicBodyCircle;
-	//
-	//	myBodyDef.type = b2_dynamicBody;
-	//	myBodyDef.position.Set((i*100)+50, 20); //startpos
-
-	//	dynamicCircle.m_radius = 10;
-	//	dynamicCircle.m_p.Set(0,0);
-	//	circleDef.shape = &dynamicCircle;
-	//	circleDef.restitution = 1.0f;
-	//	circleDef.density = 1.0f;
-	//	circleDef.friction = 0.8f;
-	//	//dynamicBodyCircle->ApplyForce(b2Vec2(0.5, -1), b2Vec2());
-	//	dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
-	//	dynamicBodyCircle->CreateFixture(&circleDef);
-	//	dynamicBodyCircle->SetLinearVelocity(b2Vec2(0.5f, 20.0f));
-	//	balls->ballId = i;
-	//	dynamicBodyCircle->SetUserData(balls);
-	//}
-	
-
-
 
 	//textures
+	sf::Texture livesTexture;
+	livesTexture.loadFromFile("assets/ship.png");
+	sf::Sprite livesSprite;
+	livesSprite.setTexture(livesTexture);
 
 	sf::Texture ballTexture;
 	ballTexture.loadFromFile("assets/ball3.png");
 	ballTexture.setSmooth(true);
+
+	sf::Texture bombTexture;
+	bombTexture.loadFromFile("assets/ball2.png");
+	
+	sf::Sprite bombSprite;
+	bombTexture.setSmooth(true);
+	bombSprite.setTexture(bombTexture);
+
 
 	sf::Texture shipTexture;
 	sf::Texture shipTexture1;
@@ -358,22 +337,21 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
+		
+		/*printf("NumBalls: %i\n", numBalls);*/
+
 		//update the ship sprite
 		pos = dynamicShip->GetWorldCenter();
 		shipSprite.setPosition(pos.x, pos.y);
 		shipSprite.setRotation(dynamicShip->GetAngle() * (180.0f / b2_pi));
 
-
-		//spawn new ball test
+		//Space bar to start game
 		static bool ballbool = true;
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ballbool) {
 			newBall(300,300);
 
 			ballbool = false;
-		} else if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-			ballbool = true;
 		}
-
 		//boost ship
 		static bool shiftDown = true;
 		static bool wDown = false;
@@ -435,8 +413,9 @@ int main()
 
 		//Clear the window every frame to black
 		window.clear(sf::Color::Black);
+		
+							//All draw functions must be after the draw(backdrop)
 		window.draw(backdrop);
-		//printf("balls: %i \n", ballCount);
 		
 		
 		//Step through the Box2D world, if we dont do this, box2D would not perform any physics calculations
@@ -452,6 +431,7 @@ int main()
 		//This loops through every single body in the game world
 		for(b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
 		{
+
 			//This loops through every fixture in the current body
 			for(b2Fixture* f = b->GetFixtureList(); f; f = f->GetNext())
 			{
@@ -481,19 +461,39 @@ int main()
 					window.draw(shipSprite);
 
 				} else if (f->GetType() == b2CircleShape::e_circle) {
-
+					objectData* new_b = new objectData;
 					static sf::Sprite bSprite;
 					b2PolygonShape* s = (b2PolygonShape*) f->GetShape();
+					
+					
+					bombSprite.setTexture(bombTexture);
+					
+					bombSprite.setOrigin(50,50);
+					bombSprite.setScale((s->m_radius*0.01)*2,(s->m_radius*0.01)*2);
+					bombSprite.setPosition (f->GetBody()->GetPosition().x, f->GetBody()->GetPosition().y);
+					window.draw(bombSprite);
+
 					bSprite.setTexture(ballTexture);
 					bSprite.setOrigin(50,50);
 					//bSprite.setScale((s->m_radius*0.01)/1.5,(s->m_radius*0.01)/1.5);
 					bSprite.setScale((s->m_radius*0.01)*2,(s->m_radius*0.01)*2);
+
+
 					
 					bSprite.setPosition (f->GetBody()->GetPosition().x, f->GetBody()->GetPosition().y);
 					window.draw(bSprite);
 				}
 			}
 		}
+		//lives display
+		for (int i = 0; i <= lives; i++){		
+			livesSprite.setOrigin(0,0);
+			livesSprite.setScale(0.07f,0.07f);
+					
+			livesSprite.setPosition(24.0f*i, 2.0f);
+			window.draw(livesSprite);
+		}
+
 
 		//Displays the window on screen
 		window.display();
@@ -514,7 +514,7 @@ void newBall(float x, float y)
 	
 	////////////////////////////////////////////////////////////////////////////
 	if (startBalls){
-		for(int i = 0; i < 1; ++i) {
+		for(int i = 0; i < 8 - 2; ++i) {
 			float radius = 50.0f;
 	
 			new_b = new objectData;
@@ -534,6 +534,7 @@ void newBall(float x, float y)
 			dynamicBodyCircle->SetLinearVelocity(myRand(40));
 			new_b->ballId = numBalls;
 			dynamicBodyCircle->SetUserData(new_b);
+			new_b->bomb = false;
 			numBalls++;
 		}
 		startBalls = false;
@@ -545,6 +546,7 @@ void newBall(float x, float y)
 	new_b->bounceCount = 0;
 	b2Vec2 nBallPos(x,y);
 	float radius = 50.0f;
+	new_b->bomb = false;
 	
 	myBodyDef.type = b2_dynamicBody;
 	myBodyDef.position.Set(nBallPos.x, nBallPos.y); //startpos
