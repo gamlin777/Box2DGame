@@ -1,5 +1,5 @@
 /*
-JGamlin Box2d Game
+JGamlin Box2d Game: Galactic Minefield
 
 Note: Object ID's are as follows:
 	Ship: 5
@@ -10,7 +10,6 @@ Note: Object ID's are as follows:
 	right court: 7
 	left court: 8
 
-
 */
 #include <Box2D/Box2D.h>
 #include <SFML/Graphics.hpp>
@@ -19,7 +18,7 @@ Note: Object ID's are as follows:
 #include <sstream>
 #include <ctime>
 #include <cstdlib>
-
+#include <stack>
 
 b2World* m_world;
 
@@ -27,15 +26,13 @@ struct objectData {
 	int id;
 	int ballId;
 	int bounceCount;
-	bool bomb;
 };
-	
+
 bool startBalls = true;
 int numBalls = 0;
 void newBall(float x, float y);
 b2Vec2 myRand (int strength);
 int lives = 3;
-
 
 
 class MyListener : public b2ContactListener
@@ -47,6 +44,8 @@ class MyListener : public b2ContactListener
 		objectData* contactB = (objectData*)contact->GetFixtureB()->GetBody()->GetUserData();
 		b2Vec2 splitterA = contact->GetFixtureA()->GetBody()->GetPosition();
 		b2Vec2 splitterB = contact->GetFixtureB()->GetBody()->GetPosition();
+		b2Body* bodyA = contact->GetFixtureA()->GetBody();
+		b2Body* bodyB = contact->GetFixtureB()->GetBody();
 
 		//contact a & b's type id
  		int aa = contactA->id;
@@ -58,14 +57,16 @@ class MyListener : public b2ContactListener
 
 		if(bb == 5 ){ // ship
 			if ( aa == 6){ // ball
-				contactA->bomb = true;
-				printf("contact A is a bomb\n");
+				m_world->Step((1.0f / 200.0f), 10, 8);
+				bodyA->SetTransform(b2Vec2(300,-500), 0);
+				--lives;
 			}
 		}
 		if(bb == 6){
 			if(aa == 5){
-				contactB->bomb = true;
-				printf("contact B is a bomb\n");
+				m_world->Step((1.0f / 200.0f), 10, 8);
+				bodyB->SetTransform(b2Vec2(300,-500), 0);
+				--lives;
 			}
 		}
 		//ball to court collision tests & ball spawn
@@ -75,10 +76,12 @@ class MyListener : public b2ContactListener
 				if(bc >= 6){
 					if(splitterB.x > 300.0f) {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x - 20.0f, splitterB.y);
 					} else {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x + 20.0f, splitterB.y);
 					}
@@ -89,10 +92,12 @@ class MyListener : public b2ContactListener
 				if(bc >= 6){
 					if(splitterB.x > 300.0f) {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x - 20.0f, splitterB.y);
 					} else {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x + 20.0f, splitterB.y);
 					}
@@ -103,10 +108,12 @@ class MyListener : public b2ContactListener
 				if(bc >= 6){
 					if(splitterB.y > 300.0f) {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x, splitterB.y - 20.0f);
 					} else {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x, splitterB.y + 20.0f);
 					}
@@ -117,10 +124,12 @@ class MyListener : public b2ContactListener
 				if(bc >= 6){
 					if(splitterB.y > 300.0f) {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x, splitterB.y - 20.0f);
 					} else {
 						contactB->bounceCount = 0;
+						contactA->bounceCount = 0;
 						m_world->Step((1.0f / 200.0f), 10, 8);
 						newBall(splitterB.x, splitterB.y + 20.0f);
 					}
@@ -135,7 +144,7 @@ int main()
 	srand((time(NULL)));
 	//Creates a window using SFML
 	sf::RenderWindow window(sf::VideoMode(600, 600, 32), "J Gamlin Box2D", sf::Style::Default);
-	
+	bool startSplash = true; //for start screen
 	//b2d world
 	b2Vec2 gravity(0, 0);
 	m_world = new b2World(gravity);
@@ -158,7 +167,6 @@ int main()
 	objectData* debris = new objectData;
 	debris->id = 3;
 
-
 	//shape setup for obstacles
 	//object1 and setup for 2+
 	sf::ConvexShape cShape;
@@ -171,15 +179,14 @@ int main()
 	b2Body* dynamicBody1 = m_world->CreateBody(&myBodyDef);
 	dynamicBody1->SetUserData(debris);
 
-	b2Vec2 vertices[5];
+	b2Vec2 vertices[4];
     vertices[0].Set(-10, 50);
     vertices[1].Set(-10,  0);
-    vertices[2].Set( 0, -30);
-    vertices[3].Set( 10,  0);
-    vertices[4].Set( 10,  50);
+    vertices[2].Set( 10,  0);
+    vertices[3].Set( 10,  50);
 
 	b2PolygonShape polyShape;
-	polyShape.Set(vertices, 5);
+	polyShape.Set(vertices, 4);
 
 	b2FixtureDef polyFixtureDef;
 	polyFixtureDef.shape = &polyShape;
@@ -187,25 +194,20 @@ int main()
 	polyFixtureDef.restitution = 1.0f;
 	dynamicBody1->CreateFixture(&polyFixtureDef);
 
-	//object2
+	//debris 2
 	myBodyDef.position.Set(430, 120);
 	b2Body* dynamicBody2 = m_world->CreateBody(&myBodyDef);
 	dynamicBody2->SetUserData(debris);
 
-    vertices[0].Set(10, -20);
-    vertices[1].Set(10, 0);
-    vertices[2].Set(0, 30);
-    vertices[3].Set(-10, 0);
-    vertices[4].Set(-10, -10);
 
-	polyShape.Set(vertices, 5);
+	polyShape.Set(vertices, 4);
 	dynamicBody2->CreateFixture(&polyFixtureDef);
 
 	
 	//player ship
 	b2BodyDef shipDef;
 	shipDef.type = b2_dynamicBody;
-	shipDef.position.Set(150,150);
+	shipDef.position.Set(300,300);
 	shipDef.angle = 0.0f;
 	b2Body* dynamicShip = m_world->CreateBody(&shipDef);
 	dynamicShip->SetUserData(ship);
@@ -275,14 +277,9 @@ int main()
 	staticBody4->CreateFixture(&courtDef);
 	staticBody4->SetUserData(right_court);
 
-	
 
-	//circle shape setup
-	b2FixtureDef circleDef;
-	b2CircleShape dynamicCircle;
-
-
-	//textures
+	//textures & sprites
+	//ship
 	sf::Texture livesTexture;
 	livesTexture.loadFromFile("assets/ship.png");
 	sf::Sprite livesSprite;
@@ -291,13 +288,6 @@ int main()
 	sf::Texture ballTexture;
 	ballTexture.loadFromFile("assets/ball3.png");
 	ballTexture.setSmooth(true);
-
-	sf::Texture bombTexture;
-	bombTexture.loadFromFile("assets/ball2.png");
-	
-	sf::Sprite bombSprite;
-	bombTexture.setSmooth(true);
-	bombSprite.setTexture(bombTexture);
 
 
 	sf::Texture shipTexture;
@@ -311,11 +301,23 @@ int main()
 	sf::Sprite shipSprite;
 	shipSprite.setTexture(shipTexture);
 	ballTexture.setSmooth(true);
-
 	shipSprite.setOrigin(150,150);
 	shipSprite.setScale(0.15f,0.15f);
-	b2Vec2 pos; //used for finding the ship's origin
+	b2Vec2 pos; //used for finding the ship's origin that is fed to it's sprite in each frame
 
+	//derbis
+	sf::Texture debrisTexture;
+	debrisTexture.loadFromFile("assets/debris.png");
+	debrisTexture.setSmooth(true);
+	sf::Sprite debrisSprite[2];
+	debrisSprite[0].setTexture(debrisTexture);
+	debrisSprite[0].setOrigin(10,25);
+	debrisSprite[1].setTexture(debrisTexture);
+	debrisSprite[1].setOrigin(10,25);
+	b2Vec2 debris1Pos;
+	b2Vec2 debris2Pos;
+
+	//backdrop
 	sf::Texture backdropTexture;
 	backdropTexture.loadFromFile("assets/backdrop.png");
 	sf::Sprite backdrop;
@@ -323,7 +325,19 @@ int main()
 	backdrop.setTexture(backdropTexture);
 	backdrop.setPosition(300,300);
 	backdrop.setOrigin(300,300);
-	
+
+	//splash screens
+	sf::Texture startScreenTexture;
+	startScreenTexture.loadFromFile("assets/startscreen.png");
+	sf::Sprite startScreen;
+	startScreen.setTexture(startScreenTexture);
+	startScreen.setPosition(0,0);
+
+	sf::Texture gameOverTexture;
+	gameOverTexture.loadFromFile("assets/gameover.png");
+	sf::Sprite gameOver;
+	gameOver.setTexture(gameOverTexture);
+	gameOver.setPosition(0,0);
 
 	//This loops through the window, so while the window is open
 	while (window.isOpen())
@@ -338,18 +352,26 @@ int main()
 				window.close();
 		}
 		
-		/*printf("NumBalls: %i\n", numBalls);*/
 
 		//update the ship sprite
 		pos = dynamicShip->GetWorldCenter();
 		shipSprite.setPosition(pos.x, pos.y);
 		shipSprite.setRotation(dynamicShip->GetAngle() * (180.0f / b2_pi));
 
+		//update the debris sprite
+		debris1Pos = dynamicBody1->GetWorldCenter();
+		debris2Pos = dynamicBody2->GetWorldCenter();
+		debrisSprite[0].setPosition(debris1Pos.x, debris1Pos.y);
+		debrisSprite[1].setPosition(debris2Pos.x, debris2Pos.y);
+		debrisSprite[0].setRotation(dynamicBody1->GetAngle() * (180.0f / b2_pi));
+		debrisSprite[1].setRotation(dynamicBody2->GetAngle() * (180.0f / b2_pi));
+
+
 		//Space bar to start game
 		static bool ballbool = true;
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ballbool) {
 			newBall(300,300);
-
+			startSplash = false;
 			ballbool = false;
 		}
 		//boost ship
@@ -407,16 +429,14 @@ int main()
 			dynamicShip->SetAngularVelocity(dynamicShip->GetAngularVelocity() + 0.005f);
 		}
 
-		for(int i = 0; i < numBalls; i++){
-
-		}
 
 		//Clear the window every frame to black
 		window.clear(sf::Color::Black);
 		
-							//All draw functions must be after the draw(backdrop)
+		//All draw calls must be after the backdrop
 		window.draw(backdrop);
-		
+		window.draw(debrisSprite[0]);
+		window.draw(debrisSprite[1]);
 		
 		//Step through the Box2D world, if we dont do this, box2D would not perform any physics calculations
 		//If the world is running to fast or too slow try changing the 500.0f, lower if running to slow or higher if going to fast
@@ -431,7 +451,9 @@ int main()
 		//This loops through every single body in the game world
 		for(b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
 		{
-
+			if (b->GetPosition().y < -50){
+				b->SetLinearVelocity(b2Vec2(0,0));
+			}
 			//This loops through every fixture in the current body
 			for(b2Fixture* f = b->GetFixtureList(); f; f = f->GetNext())
 			{
@@ -440,45 +462,15 @@ int main()
 				{
 					//Stores a pointer to the shape stored in the fixture
 					b2PolygonShape* s = (b2PolygonShape*)f->GetShape();
-
-					//Get the amount of vertices stored in the shape
-					size = s->GetVertexCount();
-					//Set the size of the object in SFML so it knows how many vertices the shape should have
-					cShape.setPointCount(size);
-					
-
-					//Loop through the vertices and send them from Box2D to the SFML shape
-					for(int i = 0; i < size; i++)
-					{
-						//Stores the current vertex in v
-						v = s->GetVertex(i);
-						//Converts the vertex from its local space to where it is in the world
-						cShape.setPoint(i, sf::Vector2f(b->GetWorldVector(v).x + b->GetPosition().x, b->GetWorldVector(v).y + b->GetPosition().y));
-					}
-
-					//Draws the shape onto the window
-					window.draw(cShape);
 					window.draw(shipSprite);
 
 				} else if (f->GetType() == b2CircleShape::e_circle) {
-					objectData* new_b = new objectData;
 					static sf::Sprite bSprite;
 					b2PolygonShape* s = (b2PolygonShape*) f->GetShape();
-					
-					
-					bombSprite.setTexture(bombTexture);
-					
-					bombSprite.setOrigin(50,50);
-					bombSprite.setScale((s->m_radius*0.01)*2,(s->m_radius*0.01)*2);
-					bombSprite.setPosition (f->GetBody()->GetPosition().x, f->GetBody()->GetPosition().y);
-					window.draw(bombSprite);
 
 					bSprite.setTexture(ballTexture);
 					bSprite.setOrigin(50,50);
-					//bSprite.setScale((s->m_radius*0.01)/1.5,(s->m_radius*0.01)/1.5);
 					bSprite.setScale((s->m_radius*0.01)*2,(s->m_radius*0.01)*2);
-
-
 					
 					bSprite.setPosition (f->GetBody()->GetPosition().x, f->GetBody()->GetPosition().y);
 					window.draw(bSprite);
@@ -493,7 +485,13 @@ int main()
 			livesSprite.setPosition(24.0f*i, 2.0f);
 			window.draw(livesSprite);
 		}
-
+		
+		if (startSplash){
+			window.draw(startScreen);
+		}
+		if (lives < 0 ){
+			window.draw(gameOver);
+		}
 
 		//Displays the window on screen
 		window.display();
@@ -510,11 +508,34 @@ void newBall(float x, float y)
 	static b2CircleShape dynamicCircle;
 	objectData* new_b = new objectData;
 
+	// runs each time a ball splits into two but not at the start of the game (when space is pressed)
+	if (startBalls == false) {
+		new_b = new objectData;
+		new_b->id = 6;
+		new_b->bounceCount = 0;
+		b2Vec2 nBallPos(x,y);
+		float radius = 50.0f;
 	
+		myBodyDef.type = b2_dynamicBody;
+		myBodyDef.position.Set(nBallPos.x, nBallPos.y); 
+
+		dynamicCircle.m_radius = 10;
+		dynamicCircle.m_p.Set(0,0);
+		circleDef.shape = &dynamicCircle;
+		circleDef.restitution = 1.0f;
+		circleDef.density = 1.0f;
+		circleDef.friction = 0.8f;
+		dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
+		new_b->ballId = numBalls;
+		numBalls++;
+		dynamicBodyCircle->SetUserData(new_b);
+		dynamicBodyCircle->CreateFixture(&circleDef);
+		dynamicBodyCircle->SetLinearVelocity(myRand(40));
+	}
 	
-	////////////////////////////////////////////////////////////////////////////
+	// runs once at the start once spacebar is pressed to begin the game
 	if (startBalls){
-		for(int i = 0; i < 8 - 2; ++i) {
+		for(int i = 0; i < 6; ++i) {
 			float radius = 50.0f;
 	
 			new_b = new objectData;
@@ -534,36 +555,10 @@ void newBall(float x, float y)
 			dynamicBodyCircle->SetLinearVelocity(myRand(40));
 			new_b->ballId = numBalls;
 			dynamicBodyCircle->SetUserData(new_b);
-			new_b->bomb = false;
 			numBalls++;
 		}
 		startBalls = false;
 	}
-
-	///////////////////////////////////////////////////////////////////////////
-	new_b = new objectData;
-	new_b->id = 6;
-	new_b->bounceCount = 0;
-	b2Vec2 nBallPos(x,y);
-	float radius = 50.0f;
-	new_b->bomb = false;
-	
-	myBodyDef.type = b2_dynamicBody;
-	myBodyDef.position.Set(nBallPos.x, nBallPos.y); //startpos
-
-	dynamicCircle.m_radius = 10;
-	dynamicCircle.m_p.Set(0,0);
-	circleDef.shape = &dynamicCircle;
-	circleDef.restitution = 1.0f;
-	circleDef.density = 1.0f;
-	circleDef.friction = 0.8f;
-	dynamicBodyCircle = m_world->CreateBody(&myBodyDef); //breaks
-	new_b->ballId = numBalls;
-	numBalls++;
-	dynamicBodyCircle->SetUserData(new_b);
-	dynamicBodyCircle->CreateFixture(&circleDef);
-	dynamicBodyCircle->SetLinearVelocity(myRand(40));
-
 };
 
 b2Vec2 myRand (int strength) {
