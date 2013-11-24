@@ -150,6 +150,7 @@ int main()
 	m_world = new b2World(gravity);
 	MyListener listener;
 	m_world->SetContactListener(&listener);
+	sf::Clock deltaClock;
 
 	//struct data for object type ID's
 	objectData* ship = new objectData;
@@ -380,7 +381,7 @@ int main()
 
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) && shiftDown) {
 			shipSprite.setTexture(shipTexture2);
-			dynamicShip->SetLinearVelocity(b2Vec2(-40.0f * sinf(dynamicShip->GetAngle()),( 40.0f * cosf(dynamicShip->GetAngle()))    ));
+			dynamicShip->SetLinearVelocity(b2Vec2(-200.0f * sinf(dynamicShip->GetAngle()),( 200.0f * cosf(dynamicShip->GetAngle()))    ));
 			shiftDown = false;
 		} else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
 			shiftDown = true;
@@ -440,7 +441,8 @@ int main()
 		
 		//Step through the Box2D world, if we dont do this, box2D would not perform any physics calculations
 		//If the world is running to fast or too slow try changing the 500.0f, lower if running to slow or higher if going to fast
-		m_world->Step((1.0f / 200.0f), 10, 8);
+		sf::Time deltaTime = deltaClock.restart();
+		m_world->Step((1.0f / 2.0f) * deltaTime.asSeconds(), 10, 8);
 
 		//Create a new size object, this is used for drawing the shapes in SFML
 		size_t size = 0;
@@ -530,7 +532,7 @@ void newBall(float x, float y)
 		numBalls++;
 		dynamicBodyCircle->SetUserData(new_b);
 		dynamicBodyCircle->CreateFixture(&circleDef);
-		dynamicBodyCircle->SetLinearVelocity(myRand(40));
+		dynamicBodyCircle->SetLinearVelocity(myRand(70));
 	}
 	
 	// runs once at the start once spacebar is pressed to begin the game
