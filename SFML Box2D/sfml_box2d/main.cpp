@@ -532,7 +532,7 @@ void newBall(float x, float y)
 		numBalls++;
 		dynamicBodyCircle->SetUserData(new_b);
 		dynamicBodyCircle->CreateFixture(&circleDef);
-		dynamicBodyCircle->SetLinearVelocity(myRand(70));
+		dynamicBodyCircle->SetLinearVelocity(myRand(120));
 	}
 	
 	// runs once at the start once spacebar is pressed to begin the game
@@ -554,7 +554,7 @@ void newBall(float x, float y)
 			circleDef.friction = 0.8f;
 			dynamicBodyCircle = m_world->CreateBody(&myBodyDef);
 			dynamicBodyCircle->CreateFixture(&circleDef);
-			dynamicBodyCircle->SetLinearVelocity(myRand(40));
+			dynamicBodyCircle->SetLinearVelocity(myRand(120));
 			new_b->ballId = numBalls;
 			dynamicBodyCircle->SetUserData(new_b);
 			numBalls++;
